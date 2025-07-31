@@ -1,0 +1,241 @@
+openapi: 3.0.1
+info:
+  title: Transparent TikTok API
+  version: 0.1.0
+  description: |
+    Core endpoints for user, video, interaction management,
+    plus feed and explanation APIs.
+servers:
+  - url: https://api.transparent-tiktok.com/v1
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{user_id}:
+    get:
+      summary: Get user profile
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /videos:
+    post:
+      summary: Upload a new video
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VideoUpload'
+      responses:
+        '201':
+          description: Video uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+  /videos/{video_id}:
+    get:
+      summary: Get video metadata
+      parameters:
+        - name: video_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Video object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+  /interactions:
+    post:
+      summary: Log an interaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractionCreate'
+      responses:
+        '201':
+          description: Interaction recorded
+  /feed:
+    get:
+      summary: Get personalized feed
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of recommended videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeedItem'
+  /videos/{video_id}/why:
+    get:
+      summary: Explain recommendation
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: video_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Explanation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationExplanation'
+components:
+  schemas:
+    UserCreate:
+      type: object
+      required: [username, email_hash]
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        email_hash:
+          type: string
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserCreate'
+        - type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            last_active_at:
+              type: string
+              format: date-time
+    VideoUpload:
+      type: object
+      required: [uploader_id, file]
+      properties:
+        uploader_id:
+          type: string
+          format: uuid
+        file:
+          type: string
+          format: binary
+        title:
+          type: string
+        description:
+          type: string
+        metadata_json:
+          type: object
+    Video:
+      type: object
+      properties:
+        video_id:
+          type: string
+          format: uuid
+        uploader_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        upload_time:
+          type: string
+          format: date-time
+        length_seconds:
+          type: integer
+        storage_path:
+          type: string
+        metadata_json:
+          type: object
+    InteractionCreate:
+      type: object
+      required: [user_id, video_id, type]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        video_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [view, like, share, comment]
+        duration_watched:
+          type: integer
+    FeedItem:
+      type: object
+      properties:
+        video:
+          $ref: '#/components/schemas/Video'
+        score:
+          type: number
+          format: float
+    RecommendationExplanation:
+      type: object
+      properties:
+        primary_signal:
+          type: string
+        primary_weight:
+          type: number
+          format: float
+        secondary_signals:
+          type: array
+          items:
+            type: object
+            properties:
+              signal:
+                type: string
+              weight:
+                type: number
+                format: float
